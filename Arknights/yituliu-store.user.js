@@ -20,12 +20,8 @@ setTimeout(function(){
             checkbox.type = "checkbox";
             checkbox.style = "transform: scale(1.8);";
 
-            checkbox.addEventListener("change", function(e) {
-                if (this.checked) {
-                    this.parentNode.parentNode.style.opacity = "0.5";
-                } else {
-                    this.parentNode.parentNode.style.opacity = "1.0";
-                }
+            checkbox.addEventListener("click", function(e) {
+                checkboxOnClick(this, this.parentNode.parentNode);
             });
 
             var div = document.createElement('div');
@@ -34,6 +30,21 @@ setTimeout(function(){
             div.appendChild(checkbox);
 
             actCards[i].appendChild(div);
+
+            // add click listener
+            actCards[i].addEventListener("click", function(e) {
+                checkboxOnClick(this.querySelector("input"), this);
+            });
         }
     }
 }, 1000);
+
+function checkboxOnClick(checkbox, actCard) {
+    if (checkbox.checked) {
+        actCard.style.opacity = "1.0";
+    } else {
+        actCard.style.opacity = "0.5";
+    }
+
+    checkbox.checked = !checkbox.checked;
+}
