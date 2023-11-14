@@ -9,6 +9,7 @@
 // ==/UserScript==
 
 setTimeout(function(){
+    // for adding checkbox
     var actCards = document.querySelectorAll(".act_card:not(.uni_invisible)");
     for (var i = 0; i < actCards.length ; i++) {
         if (actCards[i].innerHTML != "") {
@@ -18,33 +19,60 @@ setTimeout(function(){
             // append div with checkbox
             var checkbox = document.createElement('input');
             checkbox.type = "checkbox";
+            checkbox.classList.add('redeem');
             checkbox.style = "transform: scale(1.8);";
 
-            checkbox.addEventListener("click", function(e) {
-                checkboxOnClick(this, this.parentNode.parentNode);
+            checkbox.addEventListener("change", function(e) {
+                if (this.checked) {
+                    this.parentNode.parentNode.style.opacity = "0.5";
+                } else {
+                    this.parentNode.parentNode.style.opacity = "1.0";
+                }
             });
 
-            var div = document.createElement('div');
-            div.style="width:100%;display:flex; flex-direction: row; justify-content: center; align-items: center;";
+            var checkboxDiv = document.createElement('div');
+            checkboxDiv.style="width:100%;display:flex; flex-direction: row; justify-content: center; align-items: center;";
 
-            div.appendChild(checkbox);
+            checkboxDiv.appendChild(checkbox);
 
-            actCards[i].appendChild(div);
+            actCards[i].appendChild(checkboxDiv);
 
             // add click listener
             actCards[i].addEventListener("click", function(e) {
-                checkboxOnClick(this.querySelector("input"), this);
+                var redeemCheckbox = this.querySelector(".redeem");
+
+                if (e.target == redeemCheckbox) return;
+
+                redeemCheckbox.click();
             });
+
+            // set height property of act card detail
+            var actCardDetail = actCards[i].querySelector('.act_card_detail');
+            actCardDetail.style.height = "100px";
         }
     }
+
+    // for adding clear all button
+    var buttonDiv = document.createElement('div');
+    buttonDiv.style="width:100%;";
+
+    var button = document.createElement('button');
+    button.textContent = '清除所有';
+    button.style="width:100%;";
+
+    button.addEventListener("click", function(e) {
+        var checkboxes = document.querySelectorAll(".redeem");
+        for (var i = 0; i < checkboxes.length ; i++) {
+            checkboxes[i].checked = false;
+            checkboxes[i].dispatchEvent(new Event('change'));
+        }
+    });
+
+    buttonDiv.appendChild(button);
+
+    // insert before first act content
+    var firstActContent = document.querySelector('.act_content');
+
+    firstActContent.parentNode.insertBefore(buttonDiv, firstActContent);
+
 }, 1000);
-
-function checkboxOnClick(checkbox, actCard) {
-    if (checkbox.checked) {
-        actCard.style.opacity = "1.0";
-    } else {
-        actCard.style.opacity = "0.5";
-    }
-
-    checkbox.checked = !checkbox.checked;
-}
