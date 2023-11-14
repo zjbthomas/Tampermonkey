@@ -6,6 +6,7 @@
 // @match        https://yituliu.site/material/store
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=yituliu.site
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
 setTimeout(function(){
@@ -84,7 +85,7 @@ setTimeout(function(){
     buttonDiv.style="width:100%;";
 
     var button = document.createElement('button');
-    button.textContent = '清除所有';
+    button.textContent = '一键清除';
     button.style="width:100%;";
 
     button.addEventListener("click", function(e) {
