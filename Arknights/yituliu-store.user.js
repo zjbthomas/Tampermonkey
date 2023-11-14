@@ -9,6 +9,15 @@
 // ==/UserScript==
 
 setTimeout(function(){
+    // check which act in localstorage
+    var actBannerBackground = document.querySelector(".act_banner_background");
+    var currentAct = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+    if (localStorage.act && localStorage.act != currentAct) {
+        localStorage.clear();
+    }
+
+    localStorage.act = currentAct;
+
     // for adding checkbox
     var actCards = document.querySelectorAll(".act_card:not(.uni_invisible)");
     for (var i = 0; i < actCards.length ; i++) {
@@ -23,10 +32,20 @@ setTimeout(function(){
             checkbox.style = "transform: scale(1.8);";
 
             checkbox.addEventListener("change", function(e) {
+                var actCard = this.parentNode.parentNode;
+
+                // change opacity of act card
                 if (this.checked) {
-                    this.parentNode.parentNode.style.opacity = "0.5";
+                    actCard.style.opacity = "0.5";
                 } else {
-                    this.parentNode.parentNode.style.opacity = "1.0";
+                    actCard.style.opacity = "1.0";
+                }
+
+                // store in localStorage
+                var bgClass = findBGClass(actCard);
+
+                if (bgClass) {
+                    localStorage.setItem(bgClass, this.checked);
                 }
             });
 
@@ -49,6 +68,14 @@ setTimeout(function(){
             // set height property of act card detail
             var actCardDetail = actCards[i].querySelector('.act_card_detail');
             actCardDetail.style.height = "100px";
+
+            // read from localstorage, using image class as key
+            var bgClass = findBGClass(actCards[i]);
+
+            if (bgClass && localStorage.getItem(bgClass) != null) {
+                checkbox.checked = (localStorage.getItem(bgClass) === 'true');
+                checkbox.dispatchEvent(new Event('change'));
+            }
         }
     }
 
@@ -76,3 +103,15 @@ setTimeout(function(){
     firstActContent.parentNode.insertBefore(buttonDiv, firstActContent);
 
 }, 1000);
+
+function findBGClass(actCard) {
+    var storeSpriteAct = actCard.querySelector('.store_sprite_act');
+    var bgClass = null;
+    for (var ic = 0; ic < storeSpriteAct.classList.length; ic++) {
+        if (storeSpriteAct.classList[ic] != 'store_sprite_act' && storeSpriteAct.classList[ic].includes('bg-')) {
+            bgClass = storeSpriteAct.classList[ic];
+            break;
+        }
+    }
+    return bgClass;
+}
