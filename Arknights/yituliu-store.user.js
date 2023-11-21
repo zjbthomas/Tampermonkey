@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         明日方舟一图流-活动商店优化
-// @version      1.0
+// @version      1.1
 // @description  标记活动商店已兑换物品。
 // @author       deXaint
 // @match        https://yituliu.site/material/store
@@ -11,18 +11,31 @@
 // ==/UserScript==
 
 setTimeout(function(){
-    // check which act in localstorage
-    var actBannerBackground = document.querySelector(".act_banner_background");
-    var currentAct = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
-    if (localStorage.act && localStorage.act != currentAct) {
-        localStorage.clear();
+    // check on-going acts and retrieve info from localstorage
+    var tempActInfo = new Map();
+
+    var actBannerBackgrounds = document.querySelectorAll(".act_banner_background");
+    for (let i = 0; i < actBannerBackgrounds.length; i++) {
+        let actName = actBannerBackgrounds[i].style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+
+        if (localStorage.getItem(actName) != null) {
+            tempActInfo.set(actName, localStorage.getItem(actName));
+        } else {
+            tempActInfo.set(actName, JSON.stringify({}));
+        }
     }
 
-    localStorage.act = currentAct;
+    // clear localstorage
+    localStorage.clear();
 
-    // for adding checkbox
+    // save on-going acts again into localstorage
+    for (let [key, value] of tempActInfo) {
+        localStorage.setItem(key, value);
+    }
+
+    // for adding checkbox for all act cards, regardless of act
     var actCards = document.querySelectorAll(".act_card:not(.uni_invisible)");
-    for (var i = 0; i < actCards.length ; i++) {
+    for (let i = 0; i < actCards.length ; i++) {
         if (actCards[i].innerHTML != "") {
             // modify its height
             actCards[i].style.height = "120px";
@@ -34,7 +47,7 @@ setTimeout(function(){
             checkbox.style = "transform: scale(1.8);";
 
             checkbox.addEventListener("change", function(e) {
-                var actCard = this.parentNode.parentNode;
+                let actCard = this.parentNode.parentNode;
 
                 // change opacity of act card
                 if (this.checked) {
@@ -44,10 +57,16 @@ setTimeout(function(){
                 }
 
                 // store in localStorage
-                var bgClass = findBGClass(actCard);
+                let actBannerBackground = this.closest('.act_content').parentNode.querySelector('.act_banner_background');
+                let actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
 
-                if (bgClass) {
-                    localStorage.setItem(bgClass, this.checked);
+                let bgClass = findBGClass(actCard);
+
+                if (bgClass && localStorage.getItem(actName) != null) {
+                    let json = JSON.parse(localStorage.getItem(actName));
+                    json[bgClass] = this.checked;
+
+                    localStorage.setItem(actName, JSON.stringify(json));
                 }
             });
 
@@ -71,109 +90,129 @@ setTimeout(function(){
             var actCardDetail = actCards[i].querySelector('.act_card_detail');
             actCardDetail.style.height = "100px";
 
-            // read from localstorage, using image class as key
+            // read from localstorage
+            var actBannerBackground = actCards[i].closest('.act_content').parentNode.querySelector('.act_banner_background');
+            var actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+
             var bgClass = findBGClass(actCards[i]);
 
-            if (bgClass && localStorage.getItem(bgClass) != null) {
-                checkbox.checked = (localStorage.getItem(bgClass) === 'true');
+            if (bgClass && localStorage.getItem(actName) != null) {
+                let json = JSON.parse(localStorage.getItem(actName));
+
+                checkbox.checked = (json[bgClass] === true);
                 checkbox.dispatchEvent(new Event('change'));
             }
         }
     }
 
-    // function div
-    var functionDiv = document.createElement('div');
-    functionDiv.style="width:100%;display: flex; justify-content: flex-end; align-content: center;";
+    // add function div to each act
+    for (let i = 0; i < actBannerBackgrounds.length; i++) {
+        // function div
+        var functionDiv = document.createElement('div');
+        functionDiv.style="width:100%;display: flex; justify-content: flex-end; align-content: center;";
 
-    // sort label and checkbox
-    var sortLabel = document.createElement('label');
-    sortLabel.style="display: flex; align-items: center; margin-right:10px;";
+         // insert before first act content; such insertion should be done first so the div is rendered
+        actBannerBackgrounds[i].parentNode.insertBefore(functionDiv, actBannerBackgrounds[i].nextSibling);
 
-    var sortCheckbox = document.createElement('input');
-    sortCheckbox.type = "checkbox";
-    sortCheckbox.id = 'sort_checkbox';
-    sortCheckbox.style="margin-right:5px;";
+        // sort label and checkbox
+        var sortLabel = document.createElement('label');
+        sortLabel.style="display: flex; align-items: center; margin-right:10px;";
 
-    sortLabel.addEventListener("click", function(e) {
-        var sortCheckbox = this.querySelector("#sort_checkbox");
-        if (e.target != sortCheckbox) return;
+        var sortCheckbox = document.createElement('input');
+        sortCheckbox.type = "checkbox";
+        sortCheckbox.classList.add('sort_checkbox');
+        sortCheckbox.style="margin-right:5px;";
 
-        // not the best solution but at least working
-        if (e.target.checked) {
-            var sortedActContent = document.querySelector('#sorted_act_content');
-            if (sortedActContent == null) {
-                // create a new div withh sorted content
-                sortedActContent = document.createElement('div');
-                sortedActContent.id = "sorted_act_content";
-                sortedActContent.classList.add('act_content');
+        sortLabel.addEventListener("click", function(e) {
+            var sortCheckbox = this.querySelector(".sort_checkbox");
+            if (e.target != sortCheckbox) return;
 
-                // get eff from all act cards
-                var effMap = new Map();
-                var actCards = document.querySelectorAll(".act_card:not(.uni_invisible)");
-                for (var i = 0; i < actCards.length ; i++) {
-                    if (actCards[i].innerHTML != "") {
-                        var effP = actCards[i].querySelector(".act_card_item_efficiency");
-                        if (effP != null) {
-                            var eff = parseFloat(effP.innerHTML);
+            var container = this.closest('div').parentNode;
 
-                            effMap.set(actCards[i], eff);
+            // not the best solution but at least working
+            if (e.target.checked) {
+                var sortedActContent = container.querySelector('.sorted_act_content');
+                if (sortedActContent == null) {
+                    // create a new div withh sorted content
+                    sortedActContent = document.createElement('div');
+                    sortedActContent.classList.add("sorted_act_content", "act_content");
+
+                    // get eff from all act cards
+                    var effMap = new Map();
+                    var actCards = container.querySelectorAll(".act_card:not(.uni_invisible)");
+                    for (let i = 0; i < actCards.length ; i++) {
+                        if (actCards[i].innerHTML != "") {
+                            var effP = actCards[i].querySelector(".act_card_item_efficiency");
+                            if (effP != null) {
+                                var eff = parseFloat(effP.innerHTML);
+
+                                effMap.set(actCards[i], eff);
+                            }
                         }
                     }
+
+                    var sortedEffMap = new Map([...effMap.entries()].sort((a, b) => b[1] - a[1]));
+
+                    // this moves node from .act_content to the newly created div; not the most elegant solution
+                    for (let node of sortedEffMap.keys()) {
+                        sortedActContent.appendChild(node);
+                    }
+
+                    container.insertBefore(sortedActContent, null);
+
+                    // temporarily, remove all previous act contents
+                    var actContents = container.querySelectorAll('.act_content:not(.sorted_act_content)');
+                    for (let i = 0; i < actContents.length; i++) {
+                        actContents[i].remove();
+                    }
+
                 }
-
-                var sortedEffMap = new Map([...effMap.entries()].sort((a, b) => b[1] - a[1]));
-
-                // this moves node from .act_content to the newly created div; not the most elegant solution
-                for (var node of sortedEffMap.keys()) {
-                    sortedActContent.appendChild(node);
-                }
-
-                document.querySelector('.act_content:not(#sorted_act_content)').parentNode.insertBefore(sortedActContent, null);
-
-                // temporarily, remove all previous act contents
-                var actContents = document.querySelectorAll('.act_content:not(#sorted_act_content)');
-                for (var i = 0; i < actContents.length; i++) {
-                    actContents[i].remove();
-                }
-
+            } else {
+                // this just refreshes the page; not the best solution
+                location.reload();
             }
-        } else {
-            // this just refreshes the page; not the best solution
-            location.reload();
+
+            // store in localStorage
+            let actBannerBackground = container.querySelector('.act_banner_background');
+            let actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+
+            if (localStorage.getItem(actName) != null) {
+                let json = JSON.parse(localStorage.getItem(actName));
+                json["sorted"] = e.target.checked;
+
+                localStorage.setItem(actName, JSON.stringify(json));
+            }
+        });
+
+        sortLabel.appendChild(sortCheckbox);
+        sortLabel.innerHTML += "合并后排序";
+
+        functionDiv.appendChild(sortLabel);
+
+        // read from localstorage
+        let actName = actBannerBackgrounds[i].style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+
+        if (localStorage.getItem(actName) != null) {
+            let json = JSON.parse(localStorage.getItem(actName));
+            if (json["sorted"] != null && json["sorted"] === true) {
+                sortLabel.click();
+            }
         }
 
-        // store in localStorage
-        localStorage.setItem("sorted", e.target.checked);
-    });
+        // clear-all button
+        var button = document.createElement('button');
+        button.textContent = "清除所有";
 
-    sortLabel.appendChild(sortCheckbox);
-    sortLabel.innerHTML += "合并后排序";
+        button.addEventListener("click", function(e) {
+            var checkboxes = this.closest('div').parentNode.querySelectorAll(".redeem");
+            for (var i = 0; i < checkboxes.length ; i++) {
+                checkboxes[i].checked = false;
+                checkboxes[i].dispatchEvent(new Event('change'));
+            }
+        });
 
-    functionDiv.appendChild(sortLabel);
-
-    // read from localstorage
-    if (localStorage.getItem("sorted") != null && localStorage.getItem("sorted") === 'true') {
-        sortLabel.click();
+        functionDiv.appendChild(button);
     }
-
-    // clear all button
-    var button = document.createElement('button');
-    button.textContent = "清除所有";
-
-    button.addEventListener("click", function(e) {
-        var checkboxes = document.querySelectorAll(".redeem");
-        for (var i = 0; i < checkboxes.length ; i++) {
-            checkboxes[i].checked = false;
-            checkboxes[i].dispatchEvent(new Event('change'));
-        }
-    });
-
-    functionDiv.appendChild(button);
-
-    // insert before first act content
-    var stageHint = document.querySelector('.stage_hint');
-    stageHint.parentNode.insertBefore(functionDiv, stageHint.nextSibling);
-
 }, 1000);
 
 function findBGClass(actCard) {
