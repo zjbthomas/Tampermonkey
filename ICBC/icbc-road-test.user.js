@@ -15,6 +15,8 @@ var keyword = "";
 
 var intervalID = setInterval(login, 1000);
 
+var reschedulePopup = false;
+
 function login() {
     switch (location.pathname){
         case "/webdeas-ui/home":
@@ -36,7 +38,16 @@ function login() {
             document.getElementById("mat-checkbox-1-input").click();
 
             document.getElementsByClassName("primary")[0].click();
-
+            
+            break;
+        case "/webdeas-ui/driver":
+            if (reschedulePopup == false){
+                document.getElementsByClassName("raised-button primary")[0].click();
+                reschedulePopup = true
+            }
+            else {
+                document.getElementsByClassName("primary ng-star-inserted")[0].click();
+            }
             break;
         case "/webdeas-ui/booking":
             clearInterval(intervalID);
