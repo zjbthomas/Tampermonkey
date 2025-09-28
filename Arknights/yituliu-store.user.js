@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         明日方舟一图流-活动商店优化
-// @version      1.1
+// @version      1.2
 // @description  标记活动商店已兑换物品。
 // @author       deXaint
-// @match        https://yituliu.site/material/store
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=yituliu.site
+// @match        https://ark.yituliu.cn/material/store
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=yituliu.cn
 // @grant        none
 // @license      MIT
 // @namespace https://greasyfork.org/users/1217444
@@ -14,7 +14,7 @@ setTimeout(function(){
     // check on-going acts and retrieve info from localstorage
     var tempActInfo = new Map();
 
-    var actBannerBackgrounds = document.querySelectorAll(".act_banner_background");
+    var actBannerBackgrounds = document.querySelectorAll(".act-banner-background");
     for (let i = 0; i < actBannerBackgrounds.length; i++) {
         let actName = actBannerBackgrounds[i].style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
 
@@ -34,74 +34,68 @@ setTimeout(function(){
     }
 
     // for adding checkbox for all act cards, regardless of act
-    var actCards = document.querySelectorAll(".act_card:not(.uni_invisible)");
+    var actCards = document.querySelectorAll(".activity-store-good");
     for (let i = 0; i < actCards.length ; i++) {
-        if (actCards[i].innerHTML != "") {
-            // modify its height
-            actCards[i].style.height = "120px";
+        // modify its width
+        actCards[i].style.width = "210px";
 
-            // append div with checkbox
-            var checkbox = document.createElement('input');
-            checkbox.type = "checkbox";
-            checkbox.classList.add('redeem');
-            checkbox.style = "transform: scale(1.8);";
+        // append div with checkbox
+        var checkbox = document.createElement('input');
+        checkbox.type = "checkbox";
+        checkbox.classList.add('redeem');
+        checkbox.style = "transform: scale(1.8);";
 
-            checkbox.addEventListener("change", function(e) {
-                let actCard = this.parentNode.parentNode;
+        checkbox.addEventListener("change", function(e) {
+            let actCard = this.parentNode.parentNode;
 
-                // change opacity of act card
-                if (this.checked) {
-                    actCard.style.opacity = "0.5";
-                } else {
-                    actCard.style.opacity = "1.0";
-                }
+            // change opacity of act card
+            if (this.checked) {
+                actCard.style.opacity = "0.5";
+            } else {
+                actCard.style.opacity = "1.0";
+            }
 
-                // store in localStorage
-                let actBannerBackground = this.closest('.act_content').parentNode.querySelector('.act_banner_background');
-                let actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+            // store in localStorage
+            let actBannerBackground = this.closest('.activity-store-content').parentNode.querySelector('.act-banner-background');
+            let actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
 
-                let bgClass = findBGClass(actCard);
-
-                if (bgClass && localStorage.getItem(actName) != null) {
-                    let json = JSON.parse(localStorage.getItem(actName));
-                    json[bgClass] = this.checked;
-
-                    localStorage.setItem(actName, JSON.stringify(json));
-                }
-            });
-
-            var checkboxDiv = document.createElement('div');
-            checkboxDiv.style="width:100%;display:flex; flex-direction: row; justify-content: center; align-items: center;";
-
-            checkboxDiv.appendChild(checkbox);
-
-            actCards[i].appendChild(checkboxDiv);
-
-            // add click listener
-            actCards[i].addEventListener("click", function(e) {
-                var redeemCheckbox = this.querySelector(".redeem");
-
-                if (e.target == redeemCheckbox) return;
-
-                redeemCheckbox.click();
-            });
-
-            // set height property of act card detail
-            var actCardDetail = actCards[i].querySelector('.act_card_detail');
-            actCardDetail.style.height = "100px";
-
-            // read from localstorage
-            var actBannerBackground = actCards[i].closest('.act_content').parentNode.querySelector('.act_banner_background');
-            var actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
-
-            var bgClass = findBGClass(actCards[i]);
+            let bgClass = findBGClass(actCard);
 
             if (bgClass && localStorage.getItem(actName) != null) {
                 let json = JSON.parse(localStorage.getItem(actName));
+                json[bgClass] = this.checked;
 
-                checkbox.checked = (json[bgClass] === true);
-                checkbox.dispatchEvent(new Event('change'));
+                localStorage.setItem(actName, JSON.stringify(json));
             }
+        });
+
+        var checkboxDiv = document.createElement('div');
+        checkboxDiv.style="display:flex; flex-direction: row; justify-content: center; align-items: center;";
+
+        checkboxDiv.appendChild(checkbox);
+
+        actCards[i].appendChild(checkboxDiv);
+
+        // add click listener
+        actCards[i].addEventListener("click", function(e) {
+            var redeemCheckbox = this.querySelector(".redeem");
+
+            if (e.target == redeemCheckbox) return;
+
+            redeemCheckbox.click();
+        });
+
+        // read from localstorage
+        var actBannerBackground = actCards[i].closest('.activity-store-content').parentNode.querySelector('.act-banner-background');
+        var actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
+
+        var bgClass = findBGClass(actCards[i]);
+
+        if (bgClass && localStorage.getItem(actName) != null) {
+            let json = JSON.parse(localStorage.getItem(actName));
+
+            checkbox.checked = (json[bgClass] === true);
+            checkbox.dispatchEvent(new Event('change'));
         }
     }
 
@@ -135,25 +129,23 @@ setTimeout(function(){
                 if (sortedActContent == null) {
                     // create a new div withh sorted content
                     sortedActContent = document.createElement('div');
-                    sortedActContent.classList.add("sorted_act_content", "act_content");
+                    sortedActContent.classList.add("sorted_act_content", "activity-store-content");
 
                     // get eff from all act cards
                     var effMap = new Map();
-                    var actCards = container.querySelectorAll(".act_card:not(.uni_invisible)");
+                    var actCards = container.querySelectorAll(".activity-store-good");
                     for (let i = 0; i < actCards.length ; i++) {
-                        if (actCards[i].innerHTML != "") {
-                            var effP = actCards[i].querySelector(".act_card_item_efficiency");
-                            if (effP != null) {
-                                var eff = parseFloat(effP.innerHTML);
+                        var effP = actCards[i].querySelector(".activity-store-good-efficiency");
+                        if (effP != null) {
+                            var eff = parseFloat(effP.innerHTML);
 
-                                effMap.set(actCards[i], eff);
-                            }
+                            effMap.set(actCards[i], eff);
                         }
                     }
 
                     var sortedEffMap = new Map([...effMap.entries()].sort((a, b) => b[1] - a[1]));
 
-                    // this moves node from .act_content to the newly created div; not the most elegant solution
+                    // this moves node from .activity-store-content to the newly created div; not the most elegant solution
                     for (let node of sortedEffMap.keys()) {
                         sortedActContent.appendChild(node);
                     }
@@ -161,7 +153,7 @@ setTimeout(function(){
                     container.insertBefore(sortedActContent, null);
 
                     // temporarily, remove all previous act contents
-                    var actContents = container.querySelectorAll('.act_content:not(.sorted_act_content)');
+                    var actContents = container.querySelectorAll('.activity-store-content:not(.sorted_act_content)');
                     for (let i = 0; i < actContents.length; i++) {
                         actContents[i].remove();
                     }
@@ -173,7 +165,7 @@ setTimeout(function(){
             }
 
             // store in localStorage
-            let actBannerBackground = container.querySelector('.act_banner_background');
+            let actBannerBackground = container.querySelector('.act-banner-background');
             let actName = actBannerBackground.style.background.match(/url\(["']?([^"']*)["']?\)/)[1];
 
             if (localStorage.getItem(actName) != null) {
@@ -202,6 +194,7 @@ setTimeout(function(){
         // clear-all button
         var button = document.createElement('button');
         button.textContent = "清除所有";
+        button.style.borderStyle = "solid";
 
         button.addEventListener("click", function(e) {
             var checkboxes = this.closest('div').parentNode.querySelectorAll(".redeem");
@@ -216,12 +209,15 @@ setTimeout(function(){
 }, 1000);
 
 function findBGClass(actCard) {
-    var storeSpriteAct = actCard.querySelector('.store_sprite_act');
+    var storeSpriteAct = actCard.querySelector('.activity-store-good-sprite');
+
     var bgClass = null;
-    for (var ic = 0; ic < storeSpriteAct.classList.length; ic++) {
-        if (storeSpriteAct.classList[ic] != 'store_sprite_act' && storeSpriteAct.classList[ic].includes('bg-')) {
-            bgClass = storeSpriteAct.classList[ic];
-            break;
+    for (const child of storeSpriteAct.children) {
+        for (const cls of child.classList) {
+            if (cls.includes('bg-')) {
+                bgClass = cls;
+                break;
+            }
         }
     }
     return bgClass;
