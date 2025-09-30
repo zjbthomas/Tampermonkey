@@ -15,6 +15,9 @@
 
   let triggerLimit = false;
 
+  let languagesMap = {};
+  let supportChinese = false;
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', main);
   } else {
@@ -22,6 +25,42 @@
   }
 
   function main() {
+    // Add option for filtering non-supported games
+    waitForElement('section.Focusable').then(input => {
+        let form = input.parentElement;
+
+        let section = document.createElement('section');
+        section.classList.add('Focusable');
+        form.appendChild(section);
+
+        let title = document.createElement('h3');
+        title.innerHTML = '语言兼容性';
+        section.appendChild(title);
+
+        let label = document.createElement('label');
+        label.setAttribute('tabindex', '0');
+        label.classList.add('Focusable');
+        section.appendChild(label);
+
+        let checkbox = document.createElement('input');
+        checkbox.type = "checkbox";
+        checkbox.name = "language_chinese";
+
+        checkbox.addEventListener("change", function(e) {
+            if (this.checked) {
+                supportChinese = this.checked;
+                filterWishlistList(languagesMap);
+            } else {
+                // this just refreshes the page; not the best solution
+                location.reload();
+            }
+        });
+
+        label.appendChild(checkbox);
+
+        label.appendChild(document.createTextNode('中文'));
+    });
+
     // Load language map using GM_xmlhttpRequest
     GM_xmlhttpRequest({
       method: 'GET',
@@ -32,7 +71,6 @@
           return;
         }
 
-        let languagesMap = {};
         response.responseText.split('\n').forEach(line => {
           const [id, supported] = line.trim().split(',');
           if (id && supported) {
@@ -89,12 +127,17 @@
 
   function addLangInfo(g) {
     if (!g) return;
-    g.parentElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+    if (supportChinese === false) {
+        g.parentElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+    } else {
+        g.parentElement.style.display = 'none';
+    }
   }
 
   function removeLangInfo(g) {
     if (!g) return;
     g.parentElement.style.backgroundColor = 'rgba(64, 81, 99, 0.9)';
+    g.parentElement.style.display = 'flex';
   }
 
   function waitForElement(selector, timeout = 15000) {
